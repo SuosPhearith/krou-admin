@@ -1,0 +1,512 @@
+import {
+  Button,
+  Col,
+  DatePicker,
+  Form,
+  Image,
+  Input,
+  message,
+  Modal,
+  Row,
+  Space,
+  Switch,
+  Table,
+  TableProps,
+  Upload,
+} from "antd";
+import { useState } from "react";
+import { LuCirclePlus } from "react-icons/lu";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  createWorksheet,
+  deleteWorksheet,
+  getWorksheet,
+  updateStatusWorksheet,
+  updateWorksheet,
+} from "../apis/worksheet";
+import { CreateWorksheetData, Worksheet } from "../services/type";
+import { ExclamationCircleFilled, UploadOutlined } from "@ant-design/icons";
+import { RiEdit2Fill } from "react-icons/ri";
+import { MdDelete, MdOutlineRemoveRedEye } from "react-icons/md";
+import moment from "moment";
+const { Search } = Input;
+
+const { confirm } = Modal;
+
+const WorksheetPage = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [form] = Form.useForm<CreateWorksheetData>();
+  const [searchKey, setSearchKey] = useState("");
+  const [sort, setSort] = useState("");
+  const [page, setPage] = useState(1);
+
+  // get
+  const { isLoading, isError, data, refetch } = useQuery({
+    queryKey: ["worksheet", page, searchKey, sort],
+    queryFn: () => getWorksheet(page.toString(), "20", searchKey, sort),
+  });
+  // search
+  const handleSearch = (value: string) => {
+    setSearchKey(value);
+  };
+  // create
+  const { mutate } = useMutation({
+    mutationFn: createWorksheet,
+    onSuccess: () => {
+      message.success("សន្លឹកកិច្ចការត្រូវបានបង្កើតជោគជ័យ!");
+      refetch();
+      form.resetFields();
+      setIsModalOpen(false);
+    },
+    onError: (error) => {
+      message.error("មានបញ្ហា! សូមព្យាយាមម្ដងទៀត។");
+      console.error(error);
+    },
+  });
+
+  // update
+  const [isUpdate, setIsUpdate] = useState(false);
+  const { mutate: udpateM } = useMutation({
+    mutationFn: updateWorksheet,
+    onSuccess: () => {
+      message.success("សន្លឹកកិច្ចការត្រូវបានកែជោគជ័យ!");
+      refetch();
+      setIsUpdate(false);
+      form.resetFields();
+      setIsModalOpen(false);
+    },
+    onError: (error) => {
+      message.error("មានបញ្ហា! សូមព្យាយាមម្ដងទៀត។");
+      console.error(error);
+    },
+  });
+
+  const handleUpdate = (record: Worksheet) => {
+    setIsUpdate(true);
+    const initialDate = moment(record.published_date, "YYYY-MM-DD");
+    setIsModalOpen(true);
+    form.setFieldsValue({
+      ...record,
+      published_date: initialDate,
+      cover_uri: "",
+      file_uri: "",
+    });
+  };
+  const { mutate: udateStatusM } = useMutation({
+    mutationFn: updateStatusWorksheet,
+    onSuccess: () => {
+      message.success("សន្លឹកកិច្ចការត្រូវបានកែជោគជ័យ!");
+      refetch();
+    },
+    onError: (error) => {
+      message.error("មានបញ្ហា! សូមព្យាយាមម្ដងទៀត។");
+      console.error(error);
+    },
+  });
+  const handleStatusChange = (id: number, status: boolean) => {
+    confirm({
+      title: "តើអ្នកពិតជាចង់ប្តូរមែនទេ?",
+      icon: <ExclamationCircleFilled />,
+      content: "សូមបញ្ជាក់ថាអ្នកចង់លុបធាតុទាំងនេះ ដោយប្រយ័ត្ន!",
+      okText: "បាទ/ចាស",
+      cancelText: "ទេ",
+      onOk() {
+        udateStatusM({ status, id });
+      },
+    });
+  };
+  // delete
+  const { mutate: deleteM, isPending: deleteP } = useMutation({
+    mutationFn: deleteWorksheet,
+    onSuccess: () => {
+      message.success("សន្លឹកកិច្ចការត្រូវបានលុបជោគជ័យ!");
+      refetch();
+    },
+    onError: (error) => {
+      message.error("មានបញ្ហា! សូមព្យាយាមម្ដងទៀត។");
+      console.error(error);
+    },
+  });
+  const handleDelete = (id: number) => {
+    confirm({
+      title: "តើអ្នកពិតជាចង់លុបធាតុទាំងនេះមែនទេ?",
+      icon: <ExclamationCircleFilled />,
+      content: "សូមបញ្ជាក់ថាអ្នកចង់លុបធាតុទាំងនេះ ដោយប្រយ័ត្ន!",
+      okText: "បាទ/ចាស",
+      cancelText: "ទេ",
+      onOk() {
+        deleteM(id);
+      },
+    });
+  };
+
+  // submit
+  const handleSubmit = (data: CreateWorksheetData) => {
+    if (isUpdate) {
+      udpateM(data);
+    } else {
+      mutate(data);
+    }
+  };
+  // other
+  const showModal = () => setIsModalOpen(true);
+
+  const handleCancel = () => {
+    form.resetFields();
+    setIsModalOpen(false);
+  };
+
+  const handleTableChange = (pagination, filters, sorter) => {
+    if (sorter.order === "ascend") {
+      setSort("desc");
+    } else if (sorter.order === "descend") {
+      setSort("asc");
+    } else {
+      setSort("");
+    }
+    refetch()
+  };
+
+  if (isError) {
+    return <div>Error</div>;
+  }
+
+  // column
+  const columns: TableProps<Worksheet>["columns"] = [
+    {
+      title: "ចំណងជើង",
+      dataIndex: "title",
+      key: "title",
+      render: (text) => <a>{text}</a>,
+    },
+    {
+      title: "ពណ៌នា",
+      dataIndex: "description",
+      key: "description",
+      render: (text) => text || "No Description",
+    },
+    {
+      title: "គម្រប",
+      dataIndex: "cover_uri",
+      key: "cover_uri",
+      render: (cover_uri) =>
+        cover_uri ? (
+          <Image
+            src={`${import.meta.env.VITE_APP_ASSET_URL}/${cover_uri}`}
+            alt="Cover"
+            width={60}
+          />
+        ) : (
+          "No Cover"
+        ),
+    },
+    {
+      title: "ថ្ងៃបោះពុម្ពផ្សាយ",
+      dataIndex: "published_date",
+      key: "published_date",
+      render: (published_date) =>
+        published_date
+          ? moment(published_date).format("YYYY-MM-DD")
+          : "No Date",
+    },
+    {
+      title: "មកពី",
+      dataIndex: "coming_from",
+      key: "coming_from",
+    },
+    {
+      title: "លោកគ្រូ/អ្នកគ្រូ",
+      dataIndex: "lecturer",
+      key: "lecturer",
+    },
+    {
+      title: "ឯកសារ",
+      dataIndex: "file_uri",
+      key: "file_uri",
+      render: (file_uri) =>
+        file_uri ? (
+          <a
+            href={`${import.meta.env.VITE_APP_ASSET_URL}/${file_uri}`}
+            target="_blank"
+          >
+            <Button icon={<MdOutlineRemoveRedEye />} size="middle">
+              មើលេឯកសារ
+            </Button>
+          </a>
+        ) : (
+          "No File"
+        ),
+    },
+    {
+      title: "ស្ថានភាព",
+      dataIndex: "status",
+      key: "status",
+      render: (status, record) => (
+        <Switch
+          checked={status === 1}
+          onChange={(checked) => {
+            handleStatusChange(record.id, checked);
+          }}
+          checkedChildren="សកម្ម"
+          unCheckedChildren="មិនសកម្ម"
+        />
+      ),
+    },
+    {
+      title: "ថ្ងៃបង្កើត",
+      dataIndex: "created_at",
+      key: "created_at",
+      sorter: true,
+      render: (created_at) =>
+        created_at
+          ? moment(created_at).format("YYYY-MM-DD HH:mm:ss")
+          : "No Date",
+    },
+
+    {
+      title: "សកម្មភាព",
+      key: "action",
+      render: (_, record) => (
+        <Space size="middle">
+          <Button
+            onClick={() => handleUpdate(record)}
+            type="primary"
+            icon={<RiEdit2Fill />}
+            size="middle"
+            title="edit"
+          />
+          <Button
+            disabled={deleteP}
+            onClick={() => handleDelete(record.id || 0)}
+            type="primary"
+            danger
+            icon={<MdDelete />}
+            size="middle"
+            title="delete"
+          />
+        </Space>
+      ),
+    },
+  ];
+
+  return (
+    <div className="p-4">
+      {/* Search Bar and Create Button */}
+      <div className="w-full flex justify-between items-center mb-4">
+        <Search
+          size="large"
+          allowClear
+          placeholder="ស្វែករកសន្លឹកកិច្ចការ..."
+          onSearch={(value) => handleSearch(value)}
+          style={{ width: 300 }}
+        />
+        <button
+          onClick={showModal}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md flex items-center"
+        >
+          <LuCirclePlus size={22} className="mr-2" />
+          បង្កើតសន្លឹកកិច្ចការថ្មី
+        </button>
+      </div>
+      {!isLoading && (
+        <Table<Worksheet>
+          onChange={handleTableChange}
+          columns={columns}
+          dataSource={data?.data}
+          rowKey="id"
+          pagination={{
+            current: data?.current_page,
+            pageSize: data?.per_page,
+            total: data?.total,
+            onChange: (page) => {
+              setPage(page);
+            },
+          }}
+        />
+      )}
+
+      {/* Modal for Creating Worksheet */}
+      <Modal
+        title="បង្កើតសន្លឹកកិច្ចការថ្មី"
+        open={isModalOpen}
+        onOk={() => form.submit()}
+        onCancel={handleCancel}
+        okText="រក្សាទុក"
+        cancelText="បោះបង់"
+        width={900}
+        maskClosable={false}
+      >
+        <Form<CreateWorksheetData>
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+          initialValues={{ status: true }}
+        >
+          <Form.Item name="id" label="id" hidden>
+            <Input type="number" />
+          </Form.Item>
+
+          {/* Title and Description Fields */}
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="title"
+                label="ចំណងជើង"
+                rules={[
+                  { required: true, message: "សូមបញ្ចូលចំណងជើង!" },
+                  { max: 100, message: "ចំណងជើងមិនអាចលើសពី 100 តួអក្សរ!" },
+                ]}
+              >
+                <Input placeholder="បញ្ចូលចំណងជើង" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="description" label="ពណ៌នា">
+                <Input.TextArea rows={2} placeholder="បញ្ចូលពណ៌នា" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          {/* Cover URI and Published Date Fields */}
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="cover_uri"
+                label="គម្រប"
+                rules={
+                  !isUpdate
+                    ? [{ required: true, message: "សូមផ្ទុកឡើងគម្រប!" }]
+                    : []
+                }
+              >
+                <Upload
+                  accept=".jpg,.jpeg,.png" // Accept only JPG, JPEG, PNG files
+                  beforeUpload={(file) => {
+                    const isValidType = [
+                      "image/jpeg",
+                      "image/png",
+                      "image/jpg",
+                    ].includes(file.type);
+                    const isValidSize = file.size / 1024 / 1024 < 10; // Size limit of 2MB
+
+                    if (!isValidType) {
+                      message.error("សូមផ្ទុកឡើងឯកសារប្រភេទ JPG, JPEG, PNG!");
+                      return Upload.LIST_IGNORE; // Prevent the file from being uploaded
+                    }
+
+                    if (!isValidSize) {
+                      message.error("ទំហំឯកសារត្រូវតែតិចជាង 10MB!");
+                      return Upload.LIST_IGNORE; // Prevent the file from being uploaded
+                    }
+
+                    return false; // Prevent automatic upload
+                  }}
+                  onChange={({ fileList }) => {
+                    form.setFieldsValue({
+                      cover_uri:
+                        fileList.length > 0 ? fileList[0].originFileObj : null,
+                    });
+
+                    if (fileList.length === 0) {
+                      form.validateFields(["cover_uri"]);
+                    }
+                  }}
+                >
+                  <Button icon={<UploadOutlined />}>ផ្ទុកឡើងគម្រប</Button>
+                </Upload>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="published_date"
+                label="ថ្ងៃបោះពុម្ពផ្សាយ"
+                rules={[
+                  {
+                    required: true,
+                    message: "សូមបញ្ចូលថ្ងៃបោះពុម្ពផ្សាយ!",
+                  },
+                ]}
+              >
+                <DatePicker
+                  style={{ width: "100%" }}
+                  placeholder="ជ្រើសរើសកាលបរិច្ឆេទ"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          {/* Coming From and Lecturer Fields */}
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="coming_from"
+                label="មកពី"
+                rules={[
+                  {
+                    required: true,
+                    message: "សូមបញ្ចូលមកពី!",
+                  },
+                  { max: 100, message: "ឈ្មោះមិនអាចលើសពី 100 តួអក្សរ!" },
+                ]}
+              >
+                <Input placeholder="បញ្ចូលទីកន្លែង" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="lecturer"
+                label="លោកគ្រូ/អ្នកគ្រូ"
+                rules={[
+                  {
+                    required: true,
+                    message: "សូមបញ្ចូលឈ្មោះលោកគ្រូ/អ្នកគ្រូ!",
+                  },
+                  { max: 50, message: "ឈ្មោះមិនអាចលើសពី 50 តួអក្សរ!" },
+                ]}
+              >
+                <Input placeholder="បញ្ចូលឈ្មោះ" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          {/* File URI and Status Fields */}
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="file_uri"
+                label="ឯកសារតំណភ្ជាប់"
+                rules={
+                  !isUpdate
+                    ? [{ required: true, message: "សូមផ្ទុកឡើងគម្រប!" }]
+                    : []
+                }
+              >
+                <Upload
+                  beforeUpload={() => false}
+                  onChange={({ fileList }) => {
+                    form.setFieldsValue({
+                      file_uri:
+                        fileList.length > 0 ? fileList[0].originFileObj : null,
+                    });
+                    if (fileList.length === 0) {
+                      form.validateFields(["file_uri"]);
+                    }
+                  }}
+                >
+                  <Button icon={<UploadOutlined />}>ផ្ទុកឡើងគម្រប</Button>
+                </Upload>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="status" label="ស្ថានភាព" valuePropName="checked">
+                <Switch checkedChildren="សកម្ម" unCheckedChildren="មិនសកម្ម" />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
+      </Modal>
+    </div>
+  );
+};
+
+export default WorksheetPage;
