@@ -11,9 +11,14 @@ export const uploadChunk = async (
   formData.append("chunkIndex", index.toString());
   formData.append("totalChunks", totalChunks.toString());
   formData.append("fileName", fileName);
+  formData.append("userId", "12345");
+  formData.append("key", "your_secure_key_1");
 
   try {
-    return await axios.post("http://localhost:5000/upload-chunk", formData);
+    return await axios.post(
+      `${import.meta.env.VITE_APP_ASSET_URL}/upload-chunk`,
+      formData
+    );
   } catch (error) {
     console.error("Error uploading chunk:", error);
     throw error;

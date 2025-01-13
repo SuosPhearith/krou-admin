@@ -17,6 +17,10 @@ import WorksheetDocPage from "./pages/WorksheetDocPage";
 import { RiFilePaper2Line } from "react-icons/ri";
 import BookPage from "./pages/BookPage";
 import BookDocPage from "./pages/BookDocPage";
+import DocumentPage from "./pages/DocumentPage";
+import { IoDocumentTextOutline } from "react-icons/io5";
+import LecturerPage from "./pages/LecturerPage";
+import VideoPage from "./pages/VideoPage";
 
 const { Header, Sider, Content } = Layout;
 
@@ -35,6 +39,11 @@ const App: React.FC = () => {
       key: "/",
       icon: <RxDashboard size={20}/>,
       label: <Link to="/">ផ្ទាំងគ្រប់គ្រងទូទៅ</Link>,
+    },
+    {
+      key: "/document",
+      icon: <IoDocumentTextOutline size={20}/>,
+      label: <Link to="/document">សៀវភៅកិច្ចតែងការ</Link>,
     },
     {
       key: "/book",
@@ -93,6 +102,9 @@ const App: React.FC = () => {
             <Route path="/book/:id" element={<BookDocPage />} />
             <Route path="/worksheet" element={<WorksheetPage />} />
             <Route path="/worksheet/:id" element={<WorksheetDocPage />} />
+            <Route path="/document" element={<DocumentPage />} />
+            <Route path="/document/:id" element={<LecturerPage />} />
+            <Route path="/lecturer/:id" element={<VideoPage />} />
           </Routes>
         </Content>
       </Layout>
