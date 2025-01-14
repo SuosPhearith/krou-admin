@@ -57,7 +57,12 @@ const VideoPage = () => {
       }>(
         `${
           import.meta.env.VITE_APP_API_URL
-        }/api/videos?search=${searchValue}&page=${page}&lecturers_id=${id}`
+        }/api/videos?search=${searchValue}&page=${page}&lecturers_id=${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        }
       );
       setVideos(response.data.data);
       setTotal(response.data.total);
@@ -96,11 +101,19 @@ const VideoPage = () => {
         message.error("សូមបញ្ចូលវីដេអូ!");
         return;
       }
-      await axios.post(`${import.meta.env.VITE_APP_API_URL}/api/videos/create`, {
-        ...values,
-        lecturers_id: id,
-        video_uri: videoUri,
-      });
+      await axios.post(
+        `${import.meta.env.VITE_APP_API_URL}/api/videos/create`,
+        {
+          ...values,
+          lecturers_id: id,
+          video_uri: videoUri,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        }
+      );
       message.success("បង្កើត វីដេអូ បានជោគជ័យ");
       fetchVideos();
       closeModal();
@@ -150,7 +163,14 @@ const VideoPage = () => {
       async onOk() {
         try {
           await axios.patch(
-            `${import.meta.env.VITE_APP_API_URL}/api/videos/toggle-status/${id}`
+            `${
+              import.meta.env.VITE_APP_API_URL
+            }/api/videos/toggle-status/${id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+              },
+            }
           );
           message.success("ស្ថានភាពត្រូវបានប្តូរដោយជោគជ័យ!");
           fetchVideos();
@@ -165,7 +185,14 @@ const VideoPage = () => {
   // Delete a video
   const handleDelete = async (id: number) => {
     try {
-      await axios.delete(`${import.meta.env.VITE_APP_API_URL}/api/videos/delete/${id}`);
+      await axios.delete(
+        `${import.meta.env.VITE_APP_API_URL}/api/videos/delete/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        }
+      );
       message.success("លុប វីដេអូ បានជោគជ័យ");
       fetchVideos();
     } catch (error) {

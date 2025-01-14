@@ -40,15 +40,13 @@ const BookPage = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isEdit, setIsEdit] = useState<boolean>(false);
-  const [currentBook, setCurrentBook] = useState<Book | null>(
-    null
-  );
+  const [currentBook, setCurrentBook] = useState<Book | null>(null);
   const [form] = Form.useForm();
   const [search, setSearch] = useState<string>("");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const debouncedSearch = useDebounce(search, 500);
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   // ទាញយក Book
   const fetchBooks = async (searchValue: string = search) => {
@@ -61,14 +59,19 @@ const BookPage = () => {
       }>(
         `${
           import.meta.env.VITE_APP_API_URL
-        }/api/books?search=${searchValue}&page=${page}`
+        }/api/books?search=${searchValue}&page=${page}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        }
       );
       setBooks(response.data.data);
       setTotal(response.data.total);
       setPage(response.data.current_page);
     } catch (error) {
       console.error(error);
-      message.error("ការទាញយក សន្លឹកកិច្ចការ បានបរាជ័យ");
+      message.error("ការទាញយក សៀវភៅកិច្ចតែងការ បានបរាជ័យ");
     } finally {
       setLoading(false);
     }
@@ -124,9 +127,14 @@ const BookPage = () => {
             ...values,
             file_uri: fileUri,
             cover_uri: coverUri,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            },
           }
         );
-        message.success("កែប្រែ សន្លឹកកិច្ចការ បានជោគជ័យ");
+        message.success("កែប្រែ សៀវភៅកិច្ចតែងការ បានជោគជ័យ");
       } else {
         if (!fileUri || !coverUri) {
           message.error("Please seleted file!");
@@ -138,15 +146,20 @@ const BookPage = () => {
             ...values,
             file_uri: fileUri,
             cover_uri: coverUri,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            },
           }
         );
-        message.success("បង្កើត សន្លឹកកិច្ចការ បានជោគជ័យ");
+        message.success("បង្កើត សៀវភៅកិច្ចតែងការ បានជោគជ័យ");
       }
       fetchBooks();
       closeModal();
     } catch (error) {
       console.error(error);
-      message.error("ការរក្សាទុក សន្លឹកកិច្ចការ បានបរាជ័យ");
+      message.error("ការរក្សាទុក សៀវភៅកិច្ចតែងការ បានបរាជ័យ");
     }
   };
 
@@ -154,13 +167,18 @@ const BookPage = () => {
   const handleDelete = async (id: number) => {
     try {
       await axios.delete(
-        `${import.meta.env.VITE_APP_API_URL}/api/books/delete/${id}`
+        `${import.meta.env.VITE_APP_API_URL}/api/books/delete/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        }
       );
-      message.success("លុប សន្លឹកកិច្ចការ បានជោគជ័យ");
+      message.success("លុប សៀវភៅកិច្ចតែងការ បានជោគជ័យ");
       fetchBooks();
     } catch (error) {
       console.error(error);
-      message.error("ការលុប សន្លឹកកិច្ចការ បានបរាជ័យ");
+      message.error("ការលុប សៀវភៅកិច្ចតែងការ បានបរាជ័យ");
     }
   };
 
@@ -176,8 +194,8 @@ const BookPage = () => {
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value; // Get the current input value
     setSearch(value);
-    if(value === ""){
-      fetchBooks("")
+    if (value === "") {
+      fetchBooks("");
     }
   };
 
@@ -264,9 +282,12 @@ const BookPage = () => {
         try {
           // Make the API request to toggle the status
           await axios.patch(
-            `${
-              import.meta.env.VITE_APP_API_URL
-            }/api/books/toggle-status/${id}`
+            `${import.meta.env.VITE_APP_API_URL}/api/books/toggle-status/${id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+              },
+            }
           );
           message.success("ស្ថានភាពត្រូវបានប្តូរដោយជោគជ័យ!");
           fetchBooks();
@@ -375,14 +396,14 @@ const BookPage = () => {
       key: "actions",
       render: (_, record) => (
         <div className="flex gap-2">
-          <Button type="primary" onClick={()=>navigate(`/book/${record.id}`)}>
+          <Button type="primary" onClick={() => navigate(`/book/${record.id}`)}>
             ឯកសារ
           </Button>
           <Button type="primary" onClick={() => openModal(record)}>
             កែប្រែ
           </Button>
           <Popconfirm
-            title="តើអ្នកប្រាកដថាចង់លុប សន្លឹកកិច្ចការ នេះមែនទេ?"
+            title="តើអ្នកប្រាកដថាចង់លុប សៀវភៅកិច្ចតែងការ នេះមែនទេ?"
             onConfirm={() => handleDelete(record.id)}
             okText="បាទ/ចាស"
             cancelText="ទេ"
@@ -405,7 +426,7 @@ const BookPage = () => {
           className="w-1/6"
         />
         <Button type="primary" onClick={() => openModal()}>
-          បង្កើតសន្លឹកកិច្ចការ
+          បង្កើតសៀវភៅកិច្ចតែងការ
         </Button>
       </div>
 
@@ -427,7 +448,7 @@ const BookPage = () => {
       {/* Modal សម្រាប់បង្កើត/កែប្រែ */}
       <Modal
         maskClosable={false}
-        title={isEdit ? "កែប្រែ សន្លឹកកិច្ចការ" : "បង្កើត សន្លឹកកិច្ចការ"}
+        title={isEdit ? "កែប្រែ សៀវភៅកិច្ចតែងការ" : "បង្កើត សៀវភៅកិច្ចតែងការ"}
         open={isModalOpen}
         onCancel={closeModal}
         footer={null}
@@ -484,15 +505,6 @@ const BookPage = () => {
               rules={[{ required: true, message: "សូមបញ្ចូលឈ្មោះគ្រូបង្រៀន" }]}
             >
               <Input />
-            </Form.Item>
-
-            <Form.Item
-              name="status"
-              label="ស្ថានភាព"
-              className="flex-1"
-              valuePropName="checked"
-            >
-              <Switch checkedChildren="បើក" unCheckedChildren="បិទ" />
             </Form.Item>
           </div>
           <div className="flex gap-4">

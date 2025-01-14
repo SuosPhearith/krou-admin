@@ -56,7 +56,12 @@ const WorksheetDocPage = () => {
       }>(
         `${
           import.meta.env.VITE_APP_API_URL
-        }/api/worksheet-documents?search=${searchValue}&page=${page}&worksheets_id=${id}`
+        }/api/worksheet-documents?search=${searchValue}&page=${page}&worksheets_id=${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        }
       );
       setDocuments(response.data.data);
       setTotal(response.data.total);
@@ -101,6 +106,11 @@ const WorksheetDocPage = () => {
           ...values,
           worksheets_id: id,
           file_uri: fileUri,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
         }
       );
       message.success("បង្កើត ឯកសារ បានជោគជ័យ");
@@ -154,7 +164,12 @@ const WorksheetDocPage = () => {
           await axios.patch(
             `${
               import.meta.env.VITE_APP_API_URL
-            }/api/worksheet-documents/toggle-status/${id}`
+            }/api/worksheet-documents/toggle-status/${id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+              },
+            }
           );
           message.success("ស្ថានភាពត្រូវបានប្តូរដោយជោគជ័យ!");
           fetchDocuments();
@@ -172,7 +187,12 @@ const WorksheetDocPage = () => {
       await axios.delete(
         `${
           import.meta.env.VITE_APP_API_URL
-        }/api/worksheet-documents/delete/${id}`
+        }/api/worksheet-documents/delete/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        }
       );
       message.success("លុប ឯកសារ បានជោគជ័យ");
       fetchDocuments();

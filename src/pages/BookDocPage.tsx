@@ -56,7 +56,12 @@ const BookDocPage = () => {
       }>(
         `${
           import.meta.env.VITE_APP_API_URL
-        }/api/book-documents?search=${searchValue}&page=${page}&books_id=${id}`
+        }/api/book-documents?search=${searchValue}&page=${page}&books_id=${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        }
       );
       setDocuments(response.data.data);
       setTotal(response.data.total);
@@ -101,6 +106,11 @@ const BookDocPage = () => {
           ...values,
           books_id: id,
           file_uri: fileUri,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
         }
       );
       message.success("បង្កើត ឯកសារ បានជោគជ័យ");
@@ -154,7 +164,12 @@ const BookDocPage = () => {
           await axios.patch(
             `${
               import.meta.env.VITE_APP_API_URL
-            }/api/book-documents/toggle-status/${id}`
+            }/api/book-documents/toggle-status/${id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+              },
+            }
           );
           message.success("ស្ថានភាពត្រូវបានប្តូរដោយជោគជ័យ!");
           fetchDocuments();
@@ -170,9 +185,12 @@ const BookDocPage = () => {
   const handleDelete = async (id: number) => {
     try {
       await axios.delete(
-        `${
-          import.meta.env.VITE_APP_API_URL
-        }/api/book-documents/delete/${id}`
+        `${import.meta.env.VITE_APP_API_URL}/api/book-documents/delete/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        }
       );
       message.success("លុប ឯកសារ បានជោគជ័យ");
       fetchDocuments();

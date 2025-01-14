@@ -5,29 +5,28 @@ import {
   Routes,
   Link,
   useLocation,
+  Navigate,
 } from "react-router-dom";
-import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
-import { Button, Layout, Menu, theme } from "antd";
+import { Layout, Menu, theme } from "antd";
 import logoImage from "./assets/images/logo.png";
 import { RxDashboard } from "react-icons/rx";
-import { FiBook } from "react-icons/fi";
 import DashboardPage from "./pages/DashboardPage";
 import WorksheetPage from "./pages/WorksheetPage";
 import WorksheetDocPage from "./pages/WorksheetDocPage";
-import { RiFilePaper2Line } from "react-icons/ri";
 import BookPage from "./pages/BookPage";
 import BookDocPage from "./pages/BookDocPage";
 import DocumentPage from "./pages/DocumentPage";
-import { IoDocumentTextOutline } from "react-icons/io5";
 import LecturerPage from "./pages/LecturerPage";
 import VideoPage from "./pages/VideoPage";
+import { GrBook, GrDocumentPdf, GrDocumentVideo } from "react-icons/gr";
+import LoginPage from "./pages/LoginPage";
 
-const { Header, Sider, Content } = Layout;
+const { Sider, Content } = Layout;
 
 const App: React.FC = () => {
   const [collapsed, setCollapsed] = useState(true);
   const {
-    token: { colorBgContainer, borderRadiusLG },
+    token: { borderRadiusLG },
   } = theme.useToken();
 
   // 🔄 Use useLocation to get the current URL path
@@ -37,22 +36,22 @@ const App: React.FC = () => {
   const items = [
     {
       key: "/",
-      icon: <RxDashboard size={20}/>,
+      icon: <RxDashboard />,
       label: <Link to="/">ផ្ទាំងគ្រប់គ្រងទូទៅ</Link>,
     },
     {
       key: "/document",
-      icon: <IoDocumentTextOutline size={20}/>,
-      label: <Link to="/document">សៀវភៅកិច្ចតែងការ</Link>,
+      icon: <GrDocumentVideo />,
+      label: <Link to="/document">ឯកសារជំនួយ</Link>,
     },
     {
       key: "/book",
-      icon: <FiBook size={20}/>,
+      icon: <GrBook />,
       label: <Link to="/book">សៀវភៅកិច្ចតែងការ</Link>,
     },
     {
       key: "/worksheet",
-      icon: <RiFilePaper2Line size={20}/>,
+      icon: <GrDocumentPdf />,
       label: <Link to="/worksheet">សន្លឹកកិច្ចការ</Link>,
     },
   ];
@@ -60,7 +59,10 @@ const App: React.FC = () => {
   return (
     <Layout style={{ height: "100vh" }}>
       <Sider theme="light" trigger={null} collapsible collapsed={collapsed}>
-        <div className="w-full h-12 flex justify-center items-center my-4">
+        <div
+          onClick={() => setCollapsed(!collapsed)}
+          className="w-full h-12 flex justify-center items-center my-4 cursor-pointer"
+        >
           <img className="w-14" src={logoImage} alt="logo" />
         </div>
         <Menu
@@ -72,19 +74,6 @@ const App: React.FC = () => {
       </Sider>
 
       <Layout>
-        <Header style={{ padding: 0, background: colorBgContainer }}>
-          <Button
-            type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
-            style={{
-              fontSize: "16px",
-              width: 64,
-              height: 64,
-            }}
-          />
-        </Header>
-
         <Content
           style={{
             margin: "24px 16px",
@@ -92,8 +81,8 @@ const App: React.FC = () => {
             minHeight: 280,
             borderRadius: borderRadiusLG,
             height: "calc(100vh - 120px)",
-            overflow: "auto", 
-            backgroundColor: "#fff", 
+            overflow: "auto",
+            backgroundColor: "#fff",
           }}
         >
           <Routes>
@@ -112,10 +101,31 @@ const App: React.FC = () => {
   );
 };
 
+// const AppWrapper: React.FC = () => {
+//   return (
+//     <Router>
+//       <App />
+//     </Router>
+//   );
+// };
+
+// export default AppWrapper;
+
 const AppWrapper: React.FC = () => {
+  const isAuthenticated = !!localStorage.getItem("authToken");
+
   return (
     <Router>
-      <App />
+      <Routes>
+        {!isAuthenticated ? (
+          <Route path="/login" element={<LoginPage />} />
+        ) : (
+          <>
+            <Route path="/*" element={<App />} />
+          </>
+        )}
+        {!isAuthenticated && <Route path="*" element={<Navigate to="/login" />} />}
+      </Routes>
     </Router>
   );
 };

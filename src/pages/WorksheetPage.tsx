@@ -48,7 +48,7 @@ const WorksheetPage = () => {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const debouncedSearch = useDebounce(search, 500);
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   // ទាញយក Worksheet
   const fetchWorksheets = async (searchValue: string = search) => {
@@ -61,7 +61,12 @@ const WorksheetPage = () => {
       }>(
         `${
           import.meta.env.VITE_APP_API_URL
-        }/api/worksheets?search=${searchValue}&page=${page}`
+        }/api/worksheets?search=${searchValue}&page=${page}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        }
       );
       setWorksheets(response.data.data);
       setTotal(response.data.total);
@@ -124,6 +129,11 @@ const WorksheetPage = () => {
             ...values,
             file_uri: fileUri,
             cover_uri: coverUri,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            },
           }
         );
         message.success("កែប្រែ សន្លឹកកិច្ចការ បានជោគជ័យ");
@@ -138,6 +148,11 @@ const WorksheetPage = () => {
             ...values,
             file_uri: fileUri,
             cover_uri: coverUri,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            },
           }
         );
         message.success("បង្កើត សន្លឹកកិច្ចការ បានជោគជ័យ");
@@ -154,7 +169,12 @@ const WorksheetPage = () => {
   const handleDelete = async (id: number) => {
     try {
       await axios.delete(
-        `${import.meta.env.VITE_APP_API_URL}/api/worksheets/delete/${id}`
+        `${import.meta.env.VITE_APP_API_URL}/api/worksheets/delete/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        }
       );
       message.success("លុប សន្លឹកកិច្ចការ បានជោគជ័យ");
       fetchWorksheets();
@@ -176,8 +196,8 @@ const WorksheetPage = () => {
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value; // Get the current input value
     setSearch(value);
-    if(value === ""){
-      fetchWorksheets("")
+    if (value === "") {
+      fetchWorksheets("");
     }
   };
 
@@ -266,7 +286,12 @@ const WorksheetPage = () => {
           await axios.patch(
             `${
               import.meta.env.VITE_APP_API_URL
-            }/api/worksheets/toggle-status/${id}`
+            }/api/worksheets/toggle-status/${id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+              },
+            }
           );
           message.success("ស្ថានភាពត្រូវបានប្តូរដោយជោគជ័យ!");
           fetchWorksheets();
@@ -375,7 +400,10 @@ const WorksheetPage = () => {
       key: "actions",
       render: (_, record) => (
         <div className="flex gap-2">
-          <Button type="primary" onClick={()=>navigate(`/worksheet/${record.id}`)}>
+          <Button
+            type="primary"
+            onClick={() => navigate(`/worksheet/${record.id}`)}
+          >
             ឯកសារ
           </Button>
           <Button type="primary" onClick={() => openModal(record)}>
@@ -484,15 +512,6 @@ const WorksheetPage = () => {
               rules={[{ required: true, message: "សូមបញ្ចូលឈ្មោះគ្រូបង្រៀន" }]}
             >
               <Input />
-            </Form.Item>
-
-            <Form.Item
-              name="status"
-              label="ស្ថានភាព"
-              className="flex-1"
-              valuePropName="checked"
-            >
-              <Switch checkedChildren="បើក" unCheckedChildren="បិទ" />
             </Form.Item>
           </div>
           <div className="flex gap-4">

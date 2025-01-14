@@ -45,7 +45,7 @@ const DocumentPage = () => {
   const [cover, setCover] = useState<File | null>(null);
   const [progressCover, setProgressCover] = useState<number>(0);
   const [coverUri, setCoverUri] = useState("");
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   // ទាញយក Document
   const fetchDocuments = async (searchValue: string = search) => {
@@ -58,7 +58,12 @@ const DocumentPage = () => {
       }>(
         `${
           import.meta.env.VITE_APP_API_URL
-        }/api/documents?search=${searchValue}&page=${page}`
+        }/api/documents?search=${searchValue}&page=${page}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        }
       );
       setDocuments(response.data.data);
       setTotal(response.data.total);
@@ -108,6 +113,11 @@ const DocumentPage = () => {
           {
             ...values,
             cover_uri: coverUri,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            },
           }
         );
         message.success("ការកែប្រែឯកសារ បានជោគជ័យ");
@@ -121,6 +131,11 @@ const DocumentPage = () => {
           {
             ...values,
             cover_uri: coverUri,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            },
           }
         );
         message.success("បង្កើតឯកសារ បានជោគជ័យ");
@@ -137,7 +152,12 @@ const DocumentPage = () => {
   const handleDelete = async (id: number) => {
     try {
       await axios.delete(
-        `${import.meta.env.VITE_APP_API_URL}/api/documents/delete/${id}`
+        `${import.meta.env.VITE_APP_API_URL}/api/documents/delete/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        }
       );
       message.success("ការលុបឯកសារ បានជោគជ័យ");
       fetchDocuments();
@@ -157,7 +177,12 @@ const DocumentPage = () => {
           await axios.patch(
             `${
               import.meta.env.VITE_APP_API_URL
-            }/api/documents/toggle-status/${id}`
+            }/api/documents/toggle-status/${id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+              },
+            }
           );
           message.success("ការប្តូរស្ថានភាព បានជោគជ័យ");
           fetchDocuments();
@@ -253,7 +278,10 @@ const DocumentPage = () => {
       key: "actions",
       render: (_, record) => (
         <div className="flex gap-2">
-          <Button type="primary" onClick={() => navigate(`/document/${record.id}`)}>
+          <Button
+            type="primary"
+            onClick={() => navigate(`/document/${record.id}`)}
+          >
             គ្រូបង្រៀន
           </Button>
           <Button type="primary" onClick={() => openModal(record)}>
@@ -327,7 +355,7 @@ const DocumentPage = () => {
             <Button
               type="primary"
               onClick={handleUploadCover}
-              disabled={!cover}
+              disabled={!cover || progressCover != 0}
               block
             >
               បញ្ចូល

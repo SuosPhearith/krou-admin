@@ -39,7 +39,7 @@ const LecturerPage = () => {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const debouncedSearch = useDebounce(search, 500);
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   // ទាញយក Lecturer
   const fetchLecturers = async (searchValue: string = search) => {
@@ -52,7 +52,12 @@ const LecturerPage = () => {
       }>(
         `${
           import.meta.env.VITE_APP_API_URL
-        }/api/lecturers?search=${searchValue}&page=${page}&&documents_id=${id}`
+        }/api/lecturers?search=${searchValue}&page=${page}&&documents_id=${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        }
       );
       setLecturers(response.data.data);
       setTotal(response.data.total);
@@ -92,13 +97,23 @@ const LecturerPage = () => {
           `${import.meta.env.VITE_APP_API_URL}/api/lecturers/update/${
             currentLecturer.id
           }`,
-          { ...values, documents_id: id }
+          { ...values, documents_id: id },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            },
+          }
         );
         message.success("ការកែប្រែអ្នកបង្រៀន បានជោគជ័យ");
       } else {
         await axios.post(
           `${import.meta.env.VITE_APP_API_URL}/api/lecturers/create`,
-          { ...values, documents_id: id }
+          { ...values, documents_id: id },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            },
+          }
         );
         message.success("បង្កើតអ្នកបង្រៀន បានជោគជ័យ");
       }
@@ -114,7 +129,12 @@ const LecturerPage = () => {
   const handleDelete = async (id: number) => {
     try {
       await axios.delete(
-        `${import.meta.env.VITE_APP_API_URL}/api/lecturers/delete/${id}`
+        `${import.meta.env.VITE_APP_API_URL}/api/lecturers/delete/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        }
       );
       message.success("ការលុបអ្នកបង្រៀន បានជោគជ័យ");
       fetchLecturers();
@@ -134,7 +154,12 @@ const LecturerPage = () => {
           await axios.patch(
             `${
               import.meta.env.VITE_APP_API_URL
-            }/api/lecturers/toggle-status/${id}`
+            }/api/lecturers/toggle-status/${id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+              },
+            }
           );
           message.success("ការប្តូរស្ថានភាព បានជោគជ័យ");
           fetchLecturers();
@@ -191,7 +216,10 @@ const LecturerPage = () => {
       key: "actions",
       render: (_, record) => (
         <div className="flex gap-2">
-          <Button type="primary" onClick={() => navigate(`/lecturer/${record.id}`)}>
+          <Button
+            type="primary"
+            onClick={() => navigate(`/lecturer/${record.id}`)}
+          >
             វីដេអូ
           </Button>
           <Button type="primary" onClick={() => openModal(record)}>
