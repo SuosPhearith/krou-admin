@@ -7,7 +7,7 @@ import {
   useLocation,
   Navigate,
 } from "react-router-dom";
-import { Layout, Menu, theme } from "antd";
+import { Layout, Menu, Modal, theme } from "antd";
 import logoImage from "./assets/images/logo.png";
 import { RxDashboard } from "react-icons/rx";
 import DashboardPage from "./pages/DashboardPage";
@@ -20,6 +20,9 @@ import LecturerPage from "./pages/LecturerPage";
 import VideoPage from "./pages/VideoPage";
 import { GrBook, GrDocumentPdf, GrDocumentVideo } from "react-icons/gr";
 import LoginPage from "./pages/LoginPage";
+import { FiLogOut } from "react-icons/fi";
+import { ExclamationCircleOutlined } from "@ant-design/icons";
+import axios from "axios";
 
 const { Sider, Content } = Layout;
 
@@ -56,6 +59,21 @@ const App: React.FC = () => {
     },
   ];
 
+  const handleLogout = () => {
+    Modal.confirm({
+      title: "Logout",
+      icon: <ExclamationCircleOutlined />,
+      content: "តើអ្នកចង់ចាក់ចេញពីប្រព័ន្ធមែនទេ?",
+      okText: "Logout",
+      cancelText: "ទេ",
+      onOk: async () => {
+        await axios.post(`${import.meta.env.VITE_APP_API_URL}/api/logout`);
+        window.localStorage.clear();
+        window.location.href = "/login";
+      },
+    });
+  };
+
   return (
     <Layout style={{ height: "100vh" }}>
       <Sider theme="light" trigger={null} collapsible collapsed={collapsed}>
@@ -71,6 +89,14 @@ const App: React.FC = () => {
           selectedKeys={[location.pathname]}
           items={items}
         />
+        <div className="absolute bottom-0 w-full p-3 flex justify-center items-center">
+          <div
+            onClick={() => handleLogout()}
+            className="cursor-pointer flex items-center rounded-md gap-1 hover:bg-slate-400 p-1"
+          >
+            <FiLogOut /> Logout
+          </div>
+        </div>
       </Sider>
 
       <Layout>
@@ -101,16 +127,6 @@ const App: React.FC = () => {
   );
 };
 
-// const AppWrapper: React.FC = () => {
-//   return (
-//     <Router>
-//       <App />
-//     </Router>
-//   );
-// };
-
-// export default AppWrapper;
-
 const AppWrapper: React.FC = () => {
   const isAuthenticated = !!localStorage.getItem("authToken");
 
@@ -124,7 +140,9 @@ const AppWrapper: React.FC = () => {
             <Route path="/*" element={<App />} />
           </>
         )}
-        {!isAuthenticated && <Route path="*" element={<Navigate to="/login" />} />}
+        {!isAuthenticated && (
+          <Route path="*" element={<Navigate to="/login" />} />
+        )}
       </Routes>
     </Router>
   );

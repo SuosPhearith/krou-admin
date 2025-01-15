@@ -11,8 +11,8 @@ export const uploadChunk = async (
   formData.append("chunkIndex", index.toString());
   formData.append("totalChunks", totalChunks.toString());
   formData.append("fileName", fileName);
-  formData.append("userId", "12345");
-  formData.append("key", "your_secure_key_1");
+  formData.append("userId", window.localStorage.getItem("id") || "123456");
+  formData.append("key", import.meta.env.VITE_APP_FILE_KEY);
 
   try {
     return await axios.post(

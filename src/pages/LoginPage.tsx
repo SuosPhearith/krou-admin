@@ -18,6 +18,8 @@ const LoginPage: React.FC = () => {
 
       // Store the token in localStorage
       localStorage.setItem("authToken", response.data.access_token);
+      localStorage.setItem("name", response.data.user.name);
+      localStorage.setItem("id", response.data.user.id);
 
       // Redirect to the dashboard
       window.location.href = "/";
