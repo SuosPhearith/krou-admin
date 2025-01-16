@@ -10,132 +10,226 @@ import {
   Popconfirm,
   Switch,
   Progress,
+  Image,
 } from "antd";
 import { ColumnsType } from "antd/es/table";
 import useDebounce, { uploadChunk } from "../apis/share";
+import { MdOutlineRemoveRedEye } from "react-icons/md";
+import moment from "moment";
 import { ExclamationCircleFilled } from "@ant-design/icons";
 import { useParams } from "react-router-dom";
-import { MdOutlineRemoveRedEye } from "react-icons/md";
-
 const CHUNK_SIZE = 2 * 1024 * 1024;
 const { confirm } = Modal;
 
-interface BookDocument {
+// ប្រភេទ BookDoc
+interface BookDoc {
   id: number;
   title: string;
+  description?: string;
+  cover_uri: string;
+  published_date: string;
+  coming_from: string;
+  lecturer: string;
   file_uri: string;
-  books_id: number;
   status: boolean;
 }
 
 const BookDocPage = () => {
-  // State management
+  // ស្ថានភាព
   const { id } = useParams<{ id: string }>();
-  const [documents, setDocuments] = useState<BookDocument[]>([]);
+  const [bookDocs, setBooks] = useState<BookDoc[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isEdit, setIsEdit] = useState<boolean>(false);
+  const [currentBook, setCurrentBook] = useState<BookDoc | null>(
+    null
+  );
   const [form] = Form.useForm();
   const [search, setSearch] = useState<string>("");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const debouncedSearch = useDebounce(search, 500);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [file, setFile] = useState<File | null>(null);
-  const [progressFile, setProgressFile] = useState<number>(0);
-  const [fileUri, setFileUri] = useState("");
-
-  // Fetch book documents with pagination and search
-  const fetchDocuments = async (searchValue: string = search) => {
+  // ទាញយក BookDoc
+  const fetchBooks = async (searchValue: string = search) => {
     setLoading(true);
     try {
       const response = await axios.get<{
-        data: BookDocument[];
+        data: BookDoc[];
         total: number;
         current_page: number;
       }>(
         `${
           import.meta.env.VITE_APP_API_URL
-        }/api/book-documents?search=${searchValue}&page=${page}&books_id=${id}`,
+        }/api/book-documents?search=${searchValue}&page=${page}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("authToken")}`,
           },
         }
       );
-      setDocuments(response.data.data);
+      setBooks(response.data.data);
       setTotal(response.data.total);
       setPage(response.data.current_page);
     } catch (error) {
       console.error(error);
-      message.error("ការទាញយក ឯកសារ បានបរាជ័យ");
+      message.error("ការទាញយក សៀវភៅកិច្ចតែងការ បានបរាជ័យ");
     } finally {
       setLoading(false);
     }
   };
 
-  // Open Modal for creating a new document
-  const openModal = () => {
+  // បើក Modal
+  const openModal = (bookDoc: BookDoc | null = null) => {
     setIsModalOpen(true);
-    form.resetFields();
-    setFile(null);
-    setFileUri("");
-    setProgressFile(0);
+    setIsEdit(!!bookDoc);
+    setCurrentBook(bookDoc);
+    if (bookDoc) {
+      form.setFieldsValue(bookDoc);
+    } else {
+      form.resetFields();
+    }
   };
 
-  // Close Modal
+  // បិទ Modal
+  const fileInputRef = useRef<HTMLInputElement | null>(null); // Ref for file input
+  const coverInputRef = useRef<HTMLInputElement | null>(null); // Ref for cover input
   const closeModal = () => {
+    // Close the modal
     setIsModalOpen(false);
-    form.resetFields();
+
+    // Reset state variables
+    setCurrentBook(null);
     setFile(null);
+    setCover(null);
     setFileUri("");
+    setCoverUri("");
     setProgressFile(0);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    setProgressCover(0);
+
+    // Reset form fields
+    form.resetFields();
+
+    // Clear file inputs
+    if (fileInputRef.current) fileInputRef.current.value = ""; // Clear file input
+    if (coverInputRef.current) coverInputRef.current.value = ""; // Clear cover input
+
+    console.log("Modal closed and file inputs reset.");
   };
 
-  // Handle form submission for creating a new document
-  const handleFormSubmit = async (values: Omit<BookDocument, "id">) => {
+  // ដោះស្រាយការដាក់ស្នើ Form
+  const handleFormSubmit = async (values: Omit<BookDoc, "id">) => {
     try {
-      if (!fileUri) {
-        message.error("សូមបញ្ចូលឯកសារ!");
-        return;
+      if (isEdit && currentBook) {
+        await axios.put(
+          `${import.meta.env.VITE_APP_API_URL}/api/book-documents/update/${
+            currentBook.id
+          }`,
+          {
+            ...values,
+            file_uri: fileUri,
+            cover_uri: coverUri,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            },
+          }
+        );
+        message.success("កែប្រែ សៀវភៅកិច្ចតែងការ បានជោគជ័យ");
+      } else {
+        if (!fileUri || !coverUri) {
+          message.error("Please seleted file!");
+          return;
+        }
+        await axios.post(
+          `${import.meta.env.VITE_APP_API_URL}/api/book-documents/create`,
+          {
+            ...values,
+            file_uri: fileUri,
+            cover_uri: coverUri,
+            books_id: id
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            },
+          }
+        );
+        message.success("បង្កើត សៀវភៅកិច្ចតែងការ បានជោគជ័យ");
       }
-      await axios.post(
-        `${import.meta.env.VITE_APP_API_URL}/api/book-documents/create`,
-        {
-          ...values,
-          books_id: id,
-          file_uri: fileUri,
-        },
+      fetchBooks();
+      closeModal();
+    } catch (error) {
+      console.error(error);
+      message.error("ការរក្សាទុក សៀវភៅកិច្ចតែងការ បានបរាជ័យ");
+    }
+  };
+
+  // ដោះស្រាយការលុប
+  const handleDelete = async (id: number) => {
+    try {
+      await axios.delete(
+        `${import.meta.env.VITE_APP_API_URL}/api/book-documents/delete/${id}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("authToken")}`,
           },
         }
       );
-      message.success("បង្កើត ឯកសារ បានជោគជ័យ");
-      fetchDocuments();
-      closeModal();
+      message.success("លុប សៀវភៅកិច្ចតែងការ បានជោគជ័យ");
+      fetchBooks();
     } catch (error) {
       console.error(error);
-      message.error("ការបង្កើត ឯកសារ បានបរាជ័យ");
+      message.error("ការលុប សៀវភៅកិច្ចតែងការ បានបរាជ័យ");
     }
   };
 
-  // Handle file selection
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+  // ស្វែងរក
+  useEffect(() => {
+    if (debouncedSearch) {
+      fetchBooks();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
+
+  // Handle search input
+  const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value; // Get the current input value
+    setSearch(value);
+    if (value === "") {
+      fetchBooks("");
+    }
+  };
+
+  // ======================================>File<=========================================
+  // State
+  const [file, setFile] = useState<File | null>(null);
+  const [cover, setCover] = useState<File | null>(null);
+  const [progressFile, setProgressFile] = useState<number>(0);
+  const [progressCover, setProgressCover] = useState<number>(0);
+  const [fileUri, setFileUri] = useState("");
+  const [coverUri, setCoverUri] = useState("");
+
+  // Handle file change
+  const handleFileChangeFile = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
     }
   };
+  // Handle file change
+  const handleFileChangeCover = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setCover(e.target.files[0]);
+    }
+  };
 
-  // Handle file upload
+  // Handle upload process
   const handleUploadFile = async () => {
     if (!file) {
-      message.error("សូមជ្រើសរើសឯកសារ");
+      message.error("Please selete file");
       return;
     }
-
     const fileSize = file.size;
     const totalChunks = Math.ceil(fileSize / CHUNK_SIZE);
     const fileName = file.name;
@@ -143,9 +237,11 @@ const BookDocPage = () => {
     for (let i = 0; i < totalChunks; i++) {
       const start = i * CHUNK_SIZE;
       const end = Math.min(fileSize, start + CHUNK_SIZE);
+
       const chunk = file.slice(start, end);
       const res = await uploadChunk(chunk, i, totalChunks, fileName);
 
+      // Update progress
       setProgressFile(Math.round(((i + 1) / totalChunks) * 100));
 
       if (i === totalChunks - 1) {
@@ -154,13 +250,40 @@ const BookDocPage = () => {
     }
   };
 
-  // Toggle document status
+  const handleUploadCover = async () => {
+    if (!cover) {
+      message.error("Please selete file");
+      return;
+    }
+    const fileSize = cover.size;
+    const totalChunks = Math.ceil(fileSize / CHUNK_SIZE);
+    const fileName = cover.name;
+
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * CHUNK_SIZE;
+      const end = Math.min(fileSize, start + CHUNK_SIZE);
+
+      const chunk = cover.slice(start, end);
+      const res = await uploadChunk(chunk, i, totalChunks, fileName);
+
+      // Update progress
+      setProgressCover(Math.round(((i + 1) / totalChunks) * 100));
+      if (i === totalChunks - 1) {
+        setCoverUri(res.data?.fileUrl);
+      }
+    }
+  };
+
   const handleStatusChange = async (id: number) => {
     confirm({
-      title: "តើអ្នកពិតជាចង់ប្តូរស្ថានភាព?",
+      title: "តើអ្នកពិតជាចង់ប្តូរមែនទេ?",
       icon: <ExclamationCircleFilled />,
+      content: "សូមបញ្ជាក់ថាអ្នកចង់ប្តូរស្ថានភាពដោយប្រយ័ត្ន!",
+      okText: "បាទ/ចាស",
+      cancelText: "ទេ",
       async onOk() {
         try {
+          // Make the API request to toggle the status
           await axios.patch(
             `${
               import.meta.env.VITE_APP_API_URL
@@ -172,46 +295,64 @@ const BookDocPage = () => {
             }
           );
           message.success("ស្ថានភាពត្រូវបានប្តូរដោយជោគជ័យ!");
-          fetchDocuments();
+          fetchBooks();
         } catch (error) {
           console.error(error);
-          message.error("ការប្តូរស្ថានភាព បានបរាជ័យ");
+          message.error("មានបញ្ហាក្នុងការប្តូរស្ថានភាព!");
         }
       },
     });
   };
 
-  // Delete a document
-  const handleDelete = async (id: number) => {
-    try {
-      await axios.delete(
-        `${import.meta.env.VITE_APP_API_URL}/api/book-documents/delete/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-        }
-      );
-      message.success("លុប ឯកសារ បានជោគជ័យ");
-      fetchDocuments();
-    } catch (error) {
-      console.error(error);
-      message.error("ការលុប ឯកសារ បានបរាជ័យ");
-    }
-  };
+  // ======================================>File<=========================================
 
-  // Fetch documents on page load and when search changes
+  // ទាញយក BookDoc នៅពេលទំព័របើកឡើង
   useEffect(() => {
-    fetchDocuments();
+    fetchBooks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, page]);
+  }, [page]);
 
-  // Define table columns
-  const columns: ColumnsType<BookDocument> = [
+  // ការកំណត់ស្ថមនឹងសម្រាប់តារាង Ant Design
+  const columns: ColumnsType<BookDoc> = [
+    {
+      title: "រូបភាពក្រប",
+      dataIndex: "cover_uri",
+      key: "cover_uri",
+      render: (value) => {
+        return (
+          <>
+            <Image
+              width={60}
+              src={`${import.meta.env.VITE_APP_ASSET_URL}/${value}`}
+              alt="cover"
+            />
+          </>
+        );
+      },
+    },
     {
       title: "ចំណងជើង",
       dataIndex: "title",
       key: "title",
+    },
+    {
+      title: "គ្រូបង្រៀន",
+      dataIndex: "lecturer",
+      key: "lecturer",
+    },
+    {
+      title: "មកពី",
+      dataIndex: "coming_from",
+      key: "coming_from",
+    },
+    {
+      title: "បោះពុម្ពផ្សាយ",
+      dataIndex: "published_date",
+      key: "published_date",
+      render: (published_date) =>
+        published_date
+          ? moment(published_date).format("YYYY-MM-DD")
+          : "No Date",
     },
     {
       title: "ឯកសារ",
@@ -237,20 +378,34 @@ const BookDocPage = () => {
       key: "status",
       render: (status, record) => (
         <Switch
-          checked={status}
-          onChange={() => handleStatusChange(record.id)}
+          checked={status === 1}
+          onChange={() => {
+            handleStatusChange(record.id);
+          }}
           checkedChildren="សកម្ម"
           unCheckedChildren="មិនសកម្ម"
         />
       ),
     },
     {
+      title: "ថ្ងៃបង្កើត",
+      dataIndex: "created_at",
+      key: "created_at",
+      render: (created_at) =>
+        created_at
+          ? moment(created_at).format("YYYY-MM-DD HH:mm:ss")
+          : "No Date",
+    },
+    {
       title: "សកម្មភាព",
       key: "actions",
       render: (_, record) => (
         <div className="flex gap-2">
+          <Button type="primary" onClick={() => openModal(record)}>
+            កែប្រែ
+          </Button>
           <Popconfirm
-            title="តើអ្នកប្រាកដថាចង់លុប ឯកសារ នេះមែនទេ?"
+            title="តើអ្នកប្រាកដថាចង់លុប សៀវភៅកិច្ចតែងការ នេះមែនទេ?"
             onConfirm={() => handleDelete(record.id)}
             okText="បាទ/ចាស"
             cancelText="ទេ"
@@ -269,78 +424,161 @@ const BookDocPage = () => {
           placeholder="ស្វែងរក"
           value={search}
           allowClear
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={handleSearch}
           className="w-1/6"
         />
-        <Button type="primary" onClick={openModal}>
-          បង្កើតឯកសារ
+        <Button type="primary" onClick={() => openModal()}>
+          បង្កើតសៀវភៅកិច្ចតែងការ
         </Button>
       </div>
 
       <Table
         columns={columns}
-        dataSource={documents}
+        dataSource={bookDocs}
         rowKey="id"
         loading={loading}
         pagination={{
           current: page,
-          pageSize: 10,
+          pageSize: 20,
           total: total,
-          onChange: (page) => setPage(page),
+          onChange: (page) => {
+            setPage(page);
+          },
         }}
       />
 
+      {/* Modal សម្រាប់បង្កើត/កែប្រែ */}
       <Modal
         maskClosable={false}
-        title="បង្កើត ឯកសារ"
+        title={isEdit ? "កែប្រែ សៀវភៅកិច្ចតែងការ" : "បង្កើត សៀវភៅកិច្ចតែងការ"}
         open={isModalOpen}
         onCancel={closeModal}
         footer={null}
       >
         <Form form={form} layout="vertical" onFinish={handleFormSubmit}>
-          <Form.Item
-            name="title"
-            label="ចំណងជើង"
-            rules={[{ required: true, message: "សូមបញ្ចូលចំណងជើង" }]}
-          >
-            <Input />
-          </Form.Item>
-
-          <div className="w-full">
-            <p>ឯកសារ</p>
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="my-2 w-full"
-              onChange={handleFileChange}
-            />
-            <Button
-              type="primary"
-              onClick={handleUploadFile}
-              disabled={!file || progressFile > 0}
-              block
+          {/* Row 1 */}
+          <div className="flex gap-4">
+            <Form.Item
+              name="title"
+              label="ចំណងជើង"
+              className="flex-1"
+              rules={[{ required: true, message: "សូមបញ្ចូលចំណងជើង" }]}
             >
-              Upload
-            </Button>
-            {progressFile > 0 && (
-              <Progress
-                percent={progressFile}
-                status={progressFile < 100 ? "active" : "success"}
-                strokeColor={{
-                  "0%": "#108ee9",
-                  "100%": "#87d068",
-                }}
-              />
-            )}
+              <Input />
+            </Form.Item>
+
+            <Form.Item name="description" label="ការពិពណ៌នា" className="flex-1">
+              <Input />
+            </Form.Item>
           </div>
 
+          {/* Row 2 */}
+          <div className="flex gap-4">
+            <Form.Item
+              name="published_date"
+              label="កាលបរិច្ឆេទបោះពុម្ពផ្សាយ"
+              className="flex-1"
+              rules={[
+                {
+                  required: true,
+                  message: "សូមបញ្ចូលកាលបរិច្ឆេទបោះពុម្ពផ្សាយ",
+                },
+              ]}
+            >
+              <Input type="date" />
+            </Form.Item>
+
+            <Form.Item
+              name="coming_from"
+              label="មកពី"
+              className="flex-1"
+              rules={[{ required: true, message: "សូមបញ្ចូលប្រភព" }]}
+            >
+              <Input />
+            </Form.Item>
+          </div>
+
+          {/* Row 3 */}
+          <div className="flex gap-4">
+            <Form.Item
+              name="lecturer"
+              label="គ្រូបង្រៀន"
+              className="flex-1"
+              rules={[{ required: true, message: "សូមបញ្ចូលឈ្មោះគ្រូបង្រៀន" }]}
+            >
+              <Input />
+            </Form.Item>
+          </div>
+          <div className="flex gap-4">
+            <div className="w-1/2">
+              <p>ក្របរូបភាព</p>
+              <input
+                type="file"
+                ref={coverInputRef}
+                className="my-2 w-full"
+                onChange={handleFileChangeCover}
+              />
+
+              <Button
+                type="primary"
+                onClick={handleUploadCover}
+                disabled={!cover || progressCover != 0}
+                block
+              >
+                Upload
+              </Button>
+
+              {progressCover > 0 && (
+                <Progress
+                  percent={progressCover}
+                  status={progressCover < 100 ? "active" : "success"}
+                  strokeColor={{
+                    "0%": "#108ee9",
+                    "100%": "#87d068",
+                  }}
+                />
+              )}
+            </div>
+            <div className="w-1/2">
+              <p>ឯកសារ</p>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="my-2 w-full"
+                onChange={handleFileChangeFile}
+              />
+              <Button
+                type="primary"
+                onClick={handleUploadFile}
+                disabled={!file || progressFile != 0}
+                block
+              >
+                Upload
+              </Button>
+
+              {progressFile > 0 && (
+                <Progress
+                  percent={progressFile}
+                  status={progressFile < 100 ? "active" : "success"}
+                  strokeColor={{
+                    "0%": "#108ee9",
+                    "100%": "#87d068",
+                  }}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Submit Button */}
           <div className="w-full flex justify-end mt-4">
-            <Button onClick={closeModal} className="me-3">
-              បោះបង់
-            </Button>
-            <Button type="primary" htmlType="submit">
-              បង្កើត
-            </Button>
+            <Form.Item>
+              <Button onClick={closeModal} className="me-3">
+                បោះបង់
+              </Button>
+              <Button type="primary" htmlType="submit">
+                {isEdit ? "កែប្រែ" : "បង្កើត"}
+              </Button>
+            </Form.Item>
           </div>
         </Form>
       </Modal>

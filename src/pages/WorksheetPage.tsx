@@ -14,7 +14,6 @@ import {
 } from "antd";
 import { ColumnsType } from "antd/es/table";
 import useDebounce, { uploadChunk } from "../apis/share";
-import { MdOutlineRemoveRedEye } from "react-icons/md";
 import moment from "moment";
 import { ExclamationCircleFilled } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
@@ -28,9 +27,6 @@ interface Worksheet {
   description?: string;
   cover_uri: string;
   published_date: string;
-  coming_from: string;
-  lecturer: string;
-  file_uri: string;
   status: boolean;
 }
 
@@ -100,11 +96,8 @@ const WorksheetPage = () => {
 
     // Reset state variables
     setCurrentWorksheet(null);
-    setFile(null);
     setCover(null);
-    setFileUri("");
     setCoverUri("");
-    setProgressFile(0);
     setProgressCover(0);
 
     // Reset form fields
@@ -127,7 +120,6 @@ const WorksheetPage = () => {
           }`,
           {
             ...values,
-            file_uri: fileUri,
             cover_uri: coverUri,
           },
           {
@@ -138,7 +130,7 @@ const WorksheetPage = () => {
         );
         message.success("កែប្រែ សន្លឹកកិច្ចការ បានជោគជ័យ");
       } else {
-        if (!fileUri || !coverUri) {
+        if (!coverUri) {
           message.error("Please seleted file!");
           return;
         }
@@ -146,7 +138,6 @@ const WorksheetPage = () => {
           `${import.meta.env.VITE_APP_API_URL}/api/worksheets/create`,
           {
             ...values,
-            file_uri: fileUri,
             cover_uri: coverUri,
           },
           {
@@ -203,49 +194,14 @@ const WorksheetPage = () => {
 
   // ======================================>File<=========================================
   // State
-  const [file, setFile] = useState<File | null>(null);
   const [cover, setCover] = useState<File | null>(null);
-  const [progressFile, setProgressFile] = useState<number>(0);
   const [progressCover, setProgressCover] = useState<number>(0);
-  const [fileUri, setFileUri] = useState("");
   const [coverUri, setCoverUri] = useState("");
 
-  // Handle file change
-  const handleFileChangeFile = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-    }
-  };
   // Handle file change
   const handleFileChangeCover = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setCover(e.target.files[0]);
-    }
-  };
-
-  // Handle upload process
-  const handleUploadFile = async () => {
-    if (!file) {
-      message.error("Please selete file");
-      return;
-    }
-    const fileSize = file.size;
-    const totalChunks = Math.ceil(fileSize / CHUNK_SIZE);
-    const fileName = file.name;
-
-    for (let i = 0; i < totalChunks; i++) {
-      const start = i * CHUNK_SIZE;
-      const end = Math.min(fileSize, start + CHUNK_SIZE);
-
-      const chunk = file.slice(start, end);
-      const res = await uploadChunk(chunk, i, totalChunks, fileName);
-
-      // Update progress
-      setProgressFile(Math.round(((i + 1) / totalChunks) * 100));
-
-      if (i === totalChunks - 1) {
-        setFileUri(res.data?.fileUrl);
-      }
     }
   };
 
@@ -335,16 +291,6 @@ const WorksheetPage = () => {
       key: "title",
     },
     {
-      title: "គ្រូបង្រៀន",
-      dataIndex: "lecturer",
-      key: "lecturer",
-    },
-    {
-      title: "មកពី",
-      dataIndex: "coming_from",
-      key: "coming_from",
-    },
-    {
       title: "បោះពុម្ពផ្សាយ",
       dataIndex: "published_date",
       key: "published_date",
@@ -352,24 +298,6 @@ const WorksheetPage = () => {
         published_date
           ? moment(published_date).format("YYYY-MM-DD")
           : "No Date",
-    },
-    {
-      title: "ឯកសារ",
-      dataIndex: "file_uri",
-      key: "file_uri",
-      render: (file_uri) =>
-        file_uri ? (
-          <a
-            href={`${import.meta.env.VITE_APP_ASSET_URL}/${file_uri}`}
-            target="_blank"
-          >
-            <Button icon={<MdOutlineRemoveRedEye />} size="middle">
-              មើលឯកសារ
-            </Button>
-          </a>
-        ) : (
-          "No File"
-        ),
     },
     {
       title: "ស្ថានភាព",
@@ -492,28 +420,9 @@ const WorksheetPage = () => {
             >
               <Input type="date" />
             </Form.Item>
-
-            <Form.Item
-              name="coming_from"
-              label="មកពី"
-              className="flex-1"
-              rules={[{ required: true, message: "សូមបញ្ចូលប្រភព" }]}
-            >
-              <Input />
-            </Form.Item>
           </div>
 
           {/* Row 3 */}
-          <div className="flex gap-4">
-            <Form.Item
-              name="lecturer"
-              label="គ្រូបង្រៀន"
-              className="flex-1"
-              rules={[{ required: true, message: "សូមបញ្ចូលឈ្មោះគ្រូបង្រៀន" }]}
-            >
-              <Input />
-            </Form.Item>
-          </div>
           <div className="flex gap-4">
             <div className="w-1/2">
               <p>ក្របរូបភាព</p>
@@ -527,7 +436,7 @@ const WorksheetPage = () => {
               <Button
                 type="primary"
                 onClick={handleUploadCover}
-                disabled={!cover}
+                disabled={!cover || progressCover != 0}
                 block
               >
                 Upload
@@ -537,34 +446,6 @@ const WorksheetPage = () => {
                 <Progress
                   percent={progressCover}
                   status={progressCover < 100 ? "active" : "success"}
-                  strokeColor={{
-                    "0%": "#108ee9",
-                    "100%": "#87d068",
-                  }}
-                />
-              )}
-            </div>
-            <div className="w-1/2">
-              <p>ឯកសារ</p>
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="my-2 w-full"
-                onChange={handleFileChangeFile}
-              />
-              <Button
-                type="primary"
-                onClick={handleUploadFile}
-                disabled={!file || progressFile != 0}
-                block
-              >
-                Upload
-              </Button>
-
-              {progressFile > 0 && (
-                <Progress
-                  percent={progressFile}
-                  status={progressFile < 100 ? "active" : "success"}
                   strokeColor={{
                     "0%": "#108ee9",
                     "100%": "#87d068",
