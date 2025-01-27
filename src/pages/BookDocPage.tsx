@@ -17,7 +17,8 @@ import useDebounce, { uploadChunk } from "../apis/share";
 import { MdOutlineRemoveRedEye } from "react-icons/md";
 import moment from "moment";
 import { ExclamationCircleFilled } from "@ant-design/icons";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { ImArrowLeft } from "react-icons/im";
 const CHUNK_SIZE = 2 * 1024 * 1024;
 const { confirm } = Modal;
 
@@ -41,9 +42,7 @@ const BookDocPage = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isEdit, setIsEdit] = useState<boolean>(false);
-  const [currentBook, setCurrentBook] = useState<BookDoc | null>(
-    null
-  );
+  const [currentBook, setCurrentBook] = useState<BookDoc | null>(null);
   const [form] = Form.useForm();
   const [search, setSearch] = useState<string>("");
   const [page, setPage] = useState(1);
@@ -148,7 +147,7 @@ const BookDocPage = () => {
             ...values,
             file_uri: fileUri,
             cover_uri: coverUri,
-            books_id: id
+            books_id: id,
           },
           {
             headers: {
@@ -187,20 +186,9 @@ const BookDocPage = () => {
 
   // ស្វែងរក
   useEffect(() => {
-    if (debouncedSearch) {
-      fetchBooks();
-    }
+    fetchBooks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch]);
-
-  // Handle search input
-  const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value; // Get the current input value
-    setSearch(value);
-    if (value === "") {
-      fetchBooks("");
-    }
-  };
 
   // ======================================>File<=========================================
   // State
@@ -417,16 +405,27 @@ const BookDocPage = () => {
     },
   ];
 
+  const navigate = useNavigate();
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
-        <Input
-          placeholder="ស្វែងរក"
-          value={search}
-          allowClear
-          onChange={handleSearch}
-          className="w-1/6"
-        />
+        <div className="flex items-center w-1/2">
+          <div>
+            <ImArrowLeft
+              size={20}
+              className="me-4 text-blue-500 cursor-pointer"
+              onClick={() => navigate(-1)}
+            />
+          </div>
+          <Input
+            placeholder="ស្វែងរកតាមចំណងជើង"
+            value={search}
+            allowClear
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-1/3"
+          />
+        </div>
         <Button type="primary" onClick={() => openModal()}>
           បង្កើតសៀវភៅកិច្ចតែងការ
         </Button>

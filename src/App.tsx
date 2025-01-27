@@ -23,6 +23,7 @@ import LoginPage from "./pages/LoginPage";
 import { FiLogOut } from "react-icons/fi";
 import { ExclamationCircleOutlined } from "@ant-design/icons";
 import axios from "axios";
+import VideoDocsPage from "./pages/VideoDocPage";
 
 const { Sider, Content } = Layout;
 
@@ -120,6 +121,7 @@ const App: React.FC = () => {
             <Route path="/document" element={<DocumentPage />} />
             <Route path="/document/:id" element={<LecturerPage />} />
             <Route path="/lecturer/:id" element={<VideoPage />} />
+            <Route path="/video-doc/:id" element={<VideoDocsPage />} />
           </Routes>
         </Content>
       </Layout>

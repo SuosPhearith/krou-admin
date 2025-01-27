@@ -1,4 +1,4 @@
-import { useState, useEffect, ChangeEvent } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import {
   Table,
@@ -14,6 +14,7 @@ import { ColumnsType } from "antd/es/table";
 import useDebounce from "../apis/share";
 import { ExclamationCircleFilled } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
+import { ImArrowLeft } from "react-icons/im";
 
 const { confirm } = Modal;
 
@@ -171,15 +172,6 @@ const LecturerPage = () => {
     });
   };
 
-  // ស្វែងរក
-  const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearch(value);
-    if (value === "") {
-      fetchLecturers("");
-    }
-  };
-
   // ទាញយក Lecturer នៅពេលទំព័របើកឡើង
   useEffect(() => {
     fetchLecturers();
@@ -241,13 +233,22 @@ const LecturerPage = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
-        <Input
-          placeholder="ស្វែងរក"
-          value={search}
-          allowClear
-          onChange={handleSearch}
-          className="w-1/4"
-        />
+        <div className="flex items-center w-1/2">
+          <div>
+            <ImArrowLeft
+              size={20}
+              className="me-4 text-blue-500 cursor-pointer"
+              onClick={() => navigate(-1)}
+            />
+          </div>
+          <Input
+            placeholder="ស្វែងរក"
+            value={search}
+            allowClear
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-1/3"
+          />
+        </div>
         <Button type="primary" onClick={() => openModal()}>
           បង្កើតអ្នកបង្រៀន
         </Button>

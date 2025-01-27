@@ -17,7 +17,8 @@ import useDebounce, { uploadChunk } from "../apis/share";
 import { MdOutlineRemoveRedEye } from "react-icons/md";
 import moment from "moment";
 import { ExclamationCircleFilled } from "@ant-design/icons";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { ImArrowLeft } from "react-icons/im";
 const CHUNK_SIZE = 2 * 1024 * 1024;
 const { confirm } = Modal;
 
@@ -148,7 +149,7 @@ const WorksheetPage = () => {
             ...values,
             file_uri: fileUri,
             cover_uri: coverUri,
-            worksheets_id: id
+            worksheets_id: id,
           },
           {
             headers: {
@@ -170,7 +171,9 @@ const WorksheetPage = () => {
   const handleDelete = async (id: number) => {
     try {
       await axios.delete(
-        `${import.meta.env.VITE_APP_API_URL}/api/worksheet-documents/delete/${id}`,
+        `${
+          import.meta.env.VITE_APP_API_URL
+        }/api/worksheet-documents/delete/${id}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("authToken")}`,
@@ -187,20 +190,9 @@ const WorksheetPage = () => {
 
   // ស្វែងរក
   useEffect(() => {
-    if (debouncedSearch) {
-      fetchWorksheets();
-    }
+    fetchWorksheets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch]);
-
-  // Handle search input
-  const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value; // Get the current input value
-    setSearch(value);
-    if (value === "") {
-      fetchWorksheets("");
-    }
-  };
 
   // ======================================>File<=========================================
   // State
@@ -417,16 +409,27 @@ const WorksheetPage = () => {
     },
   ];
 
+  const navigate = useNavigate();
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
-        <Input
-          placeholder="ស្វែងរក"
-          value={search}
-          allowClear
-          onChange={handleSearch}
-          className="w-1/6"
-        />
+        <div className="flex items-center w-1/2">
+          <div>
+            <ImArrowLeft
+              size={20}
+              className="me-4 text-blue-500 cursor-pointer"
+              onClick={() => navigate(-1)}
+            />
+          </div>
+          <Input
+            placeholder="ស្វែងរកតាមចំណងជើង"
+            value={search}
+            allowClear
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-1/3"
+          />
+        </div>
         <Button type="primary" onClick={() => openModal()}>
           បង្កើតសន្លឹកកិច្ចការ
         </Button>

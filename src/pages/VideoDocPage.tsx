@@ -12,130 +12,161 @@ import {
   Progress,
 } from "antd";
 import { ColumnsType } from "antd/es/table";
-import useDebounce, { uploadChunk } from "../apis/share";
+import { MdOutlineRemoveRedEye } from "react-icons/md";
+import moment from "moment";
 import { ExclamationCircleFilled } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
-import { MdOutlineRemoveRedEye } from "react-icons/md";
+import useDebounce, { uploadChunk } from "../apis/share";
 import { ImArrowLeft } from "react-icons/im";
-
 const CHUNK_SIZE = 2 * 1024 * 1024;
 const { confirm } = Modal;
 
-// Video Interface
-interface Video {
+// ចំណុចប្រទាក់ VideoDoc
+interface VideoDoc {
   id: number;
   title: string;
-  video_uri: string;
-  lecturers_id: number;
+  file_uri: string;
   status: boolean;
+  created_at: string;
 }
 
-const VideoPage = () => {
-  // State management
+const VideoDocsPage = () => {
   const { id } = useParams<{ id: string }>();
-  const [videos, setVideos] = useState<Video[]>([]);
+  const [videoDocs, setVideoDocs] = useState<VideoDoc[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isEdit, setIsEdit] = useState<boolean>(false);
+  const [currentDoc, setCurrentDoc] = useState<VideoDoc | null>(null);
   const [form] = Form.useForm();
   const [search, setSearch] = useState<string>("");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const debouncedSearch = useDebounce(search, 500);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const navigate = useNavigate();
 
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [progressFile, setProgressFile] = useState<number>(0);
-  const [videoUri, setVideoUri] = useState("");
+  const [fileUri, setFileUri] = useState("");
 
-  // Fetch videos
-  const fetchVideos = async (searchValue: string = search) => {
+  // ទាញយកឯកសារ
+  const fetchVideoDocs = async (searchValue: string = search) => {
     setLoading(true);
     try {
       const response = await axios.get<{
-        data: Video[];
+        data: VideoDoc[];
         total: number;
         current_page: number;
       }>(
         `${
           import.meta.env.VITE_APP_API_URL
-        }/api/videos?search=${searchValue}&page=${page}&lecturers_id=${id}`,
+        }/api/video-docs?search=${searchValue}&page=${page}&videos_id=${id}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("authToken")}`,
           },
         }
       );
-      setVideos(response.data.data);
+      setVideoDocs(response.data.data);
       setTotal(response.data.total);
       setPage(response.data.current_page);
     } catch (error) {
       console.error(error);
-      message.error("ការទាញយក វីដេអូ បានបរាជ័យ");
+      message.error("ការទាញយកឯកសារបានបរាជ័យ។");
     } finally {
       setLoading(false);
     }
   };
 
-  // Open Modal for creating a new video
-  const openModal = () => {
+  // បើកមុខម៉ូដាល់
+  const openModal = (doc: VideoDoc | null = null) => {
     setIsModalOpen(true);
-    form.resetFields();
-    setFile(null);
-    setVideoUri("");
-    setProgressFile(0);
+    setIsEdit(!!doc);
+    setCurrentDoc(doc);
+    if (doc) {
+      form.setFieldsValue(doc);
+    } else {
+      form.resetFields();
+    }
   };
 
-  // Close Modal
+  // បិទមុខម៉ូដាល់
   const closeModal = () => {
     setIsModalOpen(false);
-    form.resetFields();
+    setCurrentDoc(null);
     setFile(null);
-    setVideoUri("");
+    setFileUri("");
     setProgressFile(0);
+    form.resetFields();
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Handle form submission for creating a new video
-  const handleFormSubmit = async (values: Omit<Video, "id">) => {
+  // ដំណើរការស្នើសុំទម្រង់
+  const handleFormSubmit = async (
+    values: Omit<VideoDoc, "id" | "status" | "created_at">
+  ) => {
     try {
-      if (!videoUri) {
-        message.error("សូមបញ្ចូលវីដេអូ!");
-        return;
-      }
-      await axios.post(
-        `${import.meta.env.VITE_APP_API_URL}/api/videos/create`,
-        {
+      if (isEdit && currentDoc) {
+        await axios.put(
+          `${import.meta.env.VITE_APP_API_URL}/api/video-docs/${currentDoc.id}`,
+          {
+            ...values,
+            file_uri: fileUri || currentDoc.file_uri,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            },
+          }
+        );
+        message.success("ការកែប្រែឯកសារបានជោគជ័យ។");
+      } else {
+        if (!fileUri) {
+          message.error("សូមផ្ទុកឯកសារ។");
+          return;
+        }
+        await axios.post(`${import.meta.env.VITE_APP_API_URL}/api/video-docs`, {
           ...values,
-          lecturers_id: id,
-          video_uri: videoUri,
-        },
+          file_uri: fileUri,
+          videos_id: id,
+        });
+        message.success("ការបង្កើតឯកសារបានជោគជ័យ។");
+      }
+      fetchVideoDocs();
+      closeModal();
+    } catch (error) {
+      console.error(error);
+      message.error("ការរក្សាទុកឯកសារបានបរាជ័យ។");
+    }
+  };
+
+  // លុបឯកសារ
+  const handleDelete = async (id: number) => {
+    try {
+      await axios.delete(
+        `${import.meta.env.VITE_APP_API_URL}/api/video-docs/${id}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("authToken")}`,
           },
         }
       );
-      message.success("បង្កើត វីដេអូ បានជោគជ័យ");
-      fetchVideos();
-      closeModal();
+      message.success("ការលុបឯកសារបានជោគជ័យ។");
+      fetchVideoDocs();
     } catch (error) {
       console.error(error);
-      message.error("ការបង្កើត វីដេអូ បានបរាជ័យ");
+      message.error("ការលុបឯកសារបានបរាជ័យ។");
     }
   };
 
-  // Handle file selection
+  // ផ្ទុកឯកសារ
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
     }
   };
 
-  // Handle file upload
   const handleUploadFile = async () => {
     if (!file) {
-      message.error("សូមជ្រើសរើសវីដេអូ");
+      message.error("សូមជ្រើសរើសឯកសារ។");
       return;
     }
 
@@ -152,87 +183,66 @@ const VideoPage = () => {
       setProgressFile(Math.round(((i + 1) / totalChunks) * 100));
 
       if (i === totalChunks - 1) {
-        setVideoUri(res.data?.fileUrl);
+        setFileUri(res.data?.fileUrl);
       }
     }
   };
 
-  // Toggle video status
+  // ប្តូរស្ថានភាព
   const handleStatusChange = async (id: number) => {
     confirm({
-      title: "តើអ្នកពិតជាចង់ប្តូរស្ថានភាព?",
+      title: "តើអ្នកពិតជាចង់ប្តូរស្ថានភាពមែនទេ?",
       icon: <ExclamationCircleFilled />,
       async onOk() {
         try {
           await axios.patch(
             `${
               import.meta.env.VITE_APP_API_URL
-            }/api/videos/toggle-status/${id}`,
+            }/api/video-docs/${id}/toggle-status`,
+            {},
             {
               headers: {
                 Authorization: `Bearer ${localStorage.getItem("authToken")}`,
               },
             }
           );
-          message.success("ស្ថានភាពត្រូវបានប្តូរដោយជោគជ័យ!");
-          fetchVideos();
+          message.success("ស្ថានភាពត្រូវបានកែប្រែដោយជោគជ័យ។");
+          fetchVideoDocs();
         } catch (error) {
           console.error(error);
-          message.error("ការប្តូរស្ថានភាព បានបរាជ័យ");
+          message.error("ការកែប្រែស្ថានភាពបានបរាជ័យ។");
         }
       },
     });
   };
 
-  // Delete a video
-  const handleDelete = async (id: number) => {
-    try {
-      await axios.delete(
-        `${import.meta.env.VITE_APP_API_URL}/api/videos/delete/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-        }
-      );
-      message.success("លុប វីដេអូ បានជោគជ័យ");
-      fetchVideos();
-    } catch (error) {
-      console.error(error);
-      message.error("ការលុប វីដេអូ បានបរាជ័យ");
-    }
-  };
+  const debouncedSearch = useDebounce(search, 500);
 
-  // Fetch videos on page load and when search changes
   useEffect(() => {
-    fetchVideos();
+    fetchVideoDocs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, page]);
+  }, [page, debouncedSearch]);
 
-  // Define table columns
-  const columns: ColumnsType<Video> = [
+  const columns: ColumnsType<VideoDoc> = [
     {
       title: "ចំណងជើង",
       dataIndex: "title",
       key: "title",
     },
     {
-      title: "វីដេអូ",
-      dataIndex: "video_uri",
-      key: "video_uri",
-      render: (video_uri) =>
-        video_uri ? (
+      title: "ឯកសារ",
+      dataIndex: "file_uri",
+      key: "file_uri",
+      render: (file_uri) =>
+        file_uri ? (
           <a
-            href={`${import.meta.env.VITE_APP_ASSET_URL}/${video_uri}`}
+            href={`${import.meta.env.VITE_APP_ASSET_URL}/${file_uri}`}
             target="_blank"
-            rel="noopener noreferrer"
           >
-            <Button icon={<MdOutlineRemoveRedEye />} size="middle">
-              មើលវីដេអូ
-            </Button>
+            <Button icon={<MdOutlineRemoveRedEye />}>មើលឯកសារ</Button>
           </a>
         ) : (
-          "No Video"
+          "គ្មានឯកសារ"
         ),
     },
     {
@@ -249,18 +259,21 @@ const VideoPage = () => {
       ),
     },
     {
+      title: "កាលបរិច្ឆេទបង្កើត",
+      dataIndex: "created_at",
+      key: "created_at",
+      render: (created_at) => moment(created_at).format("YYYY-MM-DD HH:mm:ss"),
+    },
+    {
       title: "សកម្មភាព",
       key: "actions",
       render: (_, record) => (
         <div className="flex gap-2">
-          <Button
-            type="primary"
-            onClick={() => navigate(`/video-doc/${record.id}`)}
-          >
-            ឯកសារ
+          <Button type="primary" onClick={() => openModal(record)}>
+            កែប្រែ
           </Button>
           <Popconfirm
-            title="តើអ្នកប្រាកដថាចង់លុប វីដេអូ?"
+            title="តើអ្នកប្រាកដថាចង់លុបឯកសារនេះមែនទេ?"
             onConfirm={() => handleDelete(record.id)}
             okText="បាទ/ចាស"
             cancelText="ទេ"
@@ -271,6 +284,8 @@ const VideoPage = () => {
       ),
     },
   ];
+
+  const navigate = useNavigate();
 
   return (
     <div className="p-6">
@@ -291,14 +306,14 @@ const VideoPage = () => {
             className="w-1/3"
           />
         </div>
-        <Button type="primary" onClick={openModal}>
-          បង្កើត វីដេអូ
+        <Button type="primary" onClick={() => openModal()}>
+          បង្កើតឯកសារ
         </Button>
       </div>
 
       <Table
         columns={columns}
-        dataSource={videos}
+        dataSource={videoDocs}
         rowKey="id"
         loading={loading}
         pagination={{
@@ -310,10 +325,10 @@ const VideoPage = () => {
       />
 
       <Modal
-        maskClosable={false}
-        title="បង្កើត វីដេអូ"
+        title={isEdit ? "កែប្រែឯកសារ" : "បង្កើតឯកសារ"}
         open={isModalOpen}
         onCancel={closeModal}
+        maskClosable={false}
         footer={null}
       >
         <Form form={form} layout="vertical" onFinish={handleFormSubmit}>
@@ -325,40 +340,32 @@ const VideoPage = () => {
             <Input />
           </Form.Item>
 
-          <div className="w-full">
-            <p>វីដេអូ</p>
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="my-2 w-full"
-              onChange={handleFileChange}
-            />
-            <Button
-              type="primary"
-              onClick={handleUploadFile}
-              disabled={!file || progressFile > 0}
-              block
-            >
-              Upload
-            </Button>
-            {progressFile > 0 && (
-              <Progress
-                percent={progressFile}
-                status={progressFile < 100 ? "active" : "success"}
-                strokeColor={{
-                  "0%": "#108ee9",
-                  "100%": "#87d068",
-                }}
+          <div className="flex gap-4">
+            <div className="w-1/2">
+              <p>ឯកសារ</p>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
               />
-            )}
+              <Button
+                type="primary"
+                onClick={handleUploadFile}
+                disabled={!file || progressFile !== 0}
+                block
+              >
+                ផ្ទុកឡើង
+              </Button>
+              {progressFile > 0 && <Progress percent={progressFile} />}
+            </div>
           </div>
 
-          <div className="w-full flex justify-end mt-4">
+          <div className="flex justify-end mt-4">
             <Button onClick={closeModal} className="me-3">
               បោះបង់
             </Button>
             <Button type="primary" htmlType="submit">
-              បង្កើត
+              {isEdit ? "កែប្រែ" : "បង្កើត"}
             </Button>
           </div>
         </Form>
@@ -367,4 +374,4 @@ const VideoPage = () => {
   );
 };
 
-export default VideoPage;
+export default VideoDocsPage;
